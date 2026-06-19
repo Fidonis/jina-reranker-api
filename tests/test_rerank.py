@@ -118,6 +118,15 @@ def test_outbound_uses_backend_key_not_client_token(
     assert "top_n" not in captured["json"]
 
 
+def test_backend_timeout_is_configurable(
+    monkeypatch: pytest.MonkeyPatch, captured: dict[str, Any]
+) -> None:
+    monkeypatch.setenv("BACKEND_TIMEOUT", "120.0")
+    with _build_client(monkeypatch, captured) as _client:
+        timeout = main.app.state.http_client.timeout
+    assert timeout.read == 120.0
+
+
 def test_document_cap_truncates_excess(
     monkeypatch: pytest.MonkeyPatch, captured: dict[str, Any]
 ) -> None:
