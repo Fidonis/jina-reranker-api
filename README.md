@@ -31,11 +31,15 @@ RAG pipeline  {model, object, usage, results[]}
 ```bash
 docker run -d \
   -p 8000:8000 \
+  -e API_KEY=your-inbound-key \
   -e RERANKER_BASE_URL=http://your-backend:4000 \
-  -e RERANKER_API_KEY=your-key \
+  -e RERANKER_API_KEY=your-backend-key \
   -e RERANKER_MODEL=rerank-english-v3.0 \
   ghcr.io/fidonis/jina-reranker-api:latest
 ```
+
+`API_KEY` is optional — omit it to run the endpoint unprotected (e.g. behind a
+reverse proxy that already handles auth).
 
 ### Endpoints
 
@@ -46,9 +50,12 @@ docker run -d \
 
 ### Example request
 
+When `API_KEY` is set, pass it as the Bearer token (the same way LibreChat or any
+Jina client sends its key); when unset, the `Authorization` header is optional.
+
 ```bash
 curl -s http://localhost:8000/rerank \
-  -H "Authorization: Bearer <your-token>" \
+  -H "Authorization: Bearer <your-API_KEY>" \
   -H "Content-Type: application/json" \
   -d '{
     "model": "rerank-english-v3.0",
@@ -60,17 +67,32 @@ curl -s http://localhost:8000/rerank \
 
 ---
 
+## Authentication
+
+The service has two independent credentials:
+
+- **Inbound** (`API_KEY`) — protects this API. When set, clients must present it as
+  `Authorization: Bearer <API_KEY>`; the value is compared in constant time. Leave it
+  empty to run the endpoint open.
+- **Outbound** (`RERANKER_API_KEY`) — the key this service uses to authenticate itself
+  to the backend. It is never derived from the inbound request.
+
+---
+
 ## Configuration
 
 All settings are loaded from environment variables.
 
 | Variable | Default | Description |
 |---|---|---|
+| `API_KEY` | — | **Inbound** auth. When set, clients must send `Authorization: Bearer <API_KEY>`. Empty ⇒ endpoint open. |
 | `RERANKER_BASE_URL` | `http://0.0.0.0:4000` | Base URL of the OpenAI-compatible backend |
-| `RERANKER_API_KEY` | — | API key for the backend |
+| `RERANKER_API_KEY` | — | **Outbound** auth: key this service uses to call the backend |
 | `RERANKER_MODEL` | `rerank-english-v3.0` | Model identifier forwarded to the backend |
+| `PORT` | `8000` | Port the service listens on |
+| `LOG_LEVEL` | `INFO` | Logging level |
 
-Copy `docker/.env.example` to `.env` and adjust the values before running.
+Copy `docker/.env.example` to `docker/.env` and adjust the values before running.
 
 ---
 

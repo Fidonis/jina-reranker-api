@@ -8,7 +8,7 @@ This document provides structural and architectural context for contributors and
 
 jina-reranker-api is a lightweight FastAPI service that exposes a **Jina AI–compatible `/rerank` endpoint** backed by any OpenAI-compatible reranker backend (LiteLLM, vLLM, or similar). It allows any RAG pipeline or LLM orchestration tool that speaks the Jina AI reranker HTTP API to route reranking requests to any compatible backend, enabling model-agnostic cross-encoder reranking without client-side changes.
 
-Incoming `POST /rerank` requests are authenticated via a Bearer token, forwarded to the configured OpenAI-compatible backend, and the response is mapped back to the Jina AI response schema (relevance scores, optional document return, usage stats).
+Incoming `POST /rerank` requests are optionally authenticated against a configured `API_KEY` (presented as `Authorization: Bearer <API_KEY>`); the request is then forwarded to the configured OpenAI-compatible backend — authenticated separately with `RERANKER_API_KEY` — and the response is mapped back to the Jina AI response schema (relevance scores, optional document return, usage stats).
 
 ---
 
@@ -18,10 +18,14 @@ Incoming `POST /rerank` requests are authenticated via a Bearer token, forwarded
 jina-reranker-api/
 ├── src/                    # FastAPI server (uv project, Python 3.11+)
 │   ├── main.py             # Entry point; FastAPI app, /rerank and /health endpoints
-│   ├── pyproject.toml      # uv project config; ruff settings
-│   └── uv.lock             # Locked dependency set (tracked for reproducible builds)
+│   ├── config.py           # pydantic-settings config (env / .env loading)
+│   ├── pyproject.toml      # uv project config; ruff / mypy / pytest settings
+│   ├── uv.lock             # Locked dependency set (tracked for reproducible builds)
+│   └── .env.example        # Local-dev env vars with placeholder values
+├── tests/                  # pytest suite (sibling to src/, excluded from the image)
 ├── docker/
 │   ├── Dockerfile          # Multi-stage build: uv sync → slim runtime image
+│   ├── docker-compose.yml  # Compose deployment (build context = repo root)
 │   └── .env.example        # All required env vars with placeholder values
 └── .github/                # Workflows, issue templates, PR template
 ```
@@ -36,11 +40,12 @@ The production server lives in `src/`. There is **no** virtual environment at th
 
 ```
 HTTP client
-  │  POST /rerank  Authorization: Bearer <token>
+  │  POST /rerank  Authorization: Bearer <API_KEY>   (optional)
   ▼
 FastAPI app  (src/main.py)
-  │  validates Bearer token
+  │  validates inbound API_KEY if configured
   │  maps Jina AI request schema → OpenAI-compatible rerank request
+  │  authenticates to the backend with RERANKER_API_KEY
   ▼
 OpenAI-compatible backend  (RERANKER_BASE_URL)
   │  routes to the configured reranker model
@@ -119,13 +124,19 @@ All settings are loaded from environment variables. See `docker/.env.example` fo
 
 | Variable | Purpose |
 |---|---|
+| `API_KEY` | Inbound auth. When set, clients must send `Authorization: Bearer <API_KEY>`; empty ⇒ endpoint open |
 | `RERANKER_BASE_URL` | Base URL of the OpenAI-compatible backend (default: `http://0.0.0.0:4000`) |
-| `RERANKER_API_KEY` | API key for the backend |
+| `RERANKER_API_KEY` | Outbound auth: key this service uses to call the backend |
 | `RERANKER_MODEL` | Model identifier forwarded to the backend (default: `rerank-english-v3.0`) |
+| `PORT` | Port the service listens on (default: `8000`) |
+| `LOG_LEVEL` | Logging level (default: `INFO`) |
 
 ---
 
 ## Security boundaries
 
-- **Never log** Bearer tokens or `RERANKER_API_KEY` values.
+- **Never log** the inbound `API_KEY`, Bearer tokens, or `RERANKER_API_KEY` values.
+- The inbound `API_KEY` is compared in **constant time** (`secrets.compare_digest`).
+- Inbound and outbound credentials are **independent**: the client's Bearer token is
+  never forwarded to the backend; the backend always receives `RERANKER_API_KEY`.
 - **Copyleft dependencies are not accepted.** The CI license-check workflow rejects GPL, LGPL, AGPL, EUPL, and similar licences. See `CONTRIBUTING.md` for the full list.
