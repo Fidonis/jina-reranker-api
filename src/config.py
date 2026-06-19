@@ -34,6 +34,9 @@ class Settings(BaseSettings):
     # Hard cap on the number of documents forwarded to the backend.
     # LiteLLM enforces a limit of 1024; lower values reduce backend load.
     max_rerank_docs: int = 1024
+    # Timeout in seconds for outgoing HTTP calls to the rerank backend.
+    # Increase when reranking large document batches with slow models.
+    backend_timeout: float = 60.0
 
     # Uvicorn bind address used by `python main.py`.
     host: str = "0.0.0.0"

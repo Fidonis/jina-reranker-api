@@ -23,7 +23,8 @@ logging.basicConfig(level=get_settings().log_level.upper())
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     # One shared async client so connections are pooled across requests; closed
     # on shutdown to avoid leaking sockets.
-    app.state.http_client = httpx.AsyncClient()
+    settings = get_settings()
+    app.state.http_client = httpx.AsyncClient(timeout=settings.backend_timeout)
     try:
         yield
     finally:
