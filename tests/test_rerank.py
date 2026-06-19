@@ -116,3 +116,16 @@ def test_outbound_uses_backend_key_not_client_token(
     assert captured["url"] == "http://backend:4000/rerank"
     # top_n was not in the request, so it must not be forwarded.
     assert "top_n" not in captured["json"]
+
+
+def test_document_cap_truncates_excess(
+    monkeypatch: pytest.MonkeyPatch, captured: dict[str, Any]
+) -> None:
+    monkeypatch.setenv("MAX_RERANK_DOCS", "2")
+    request_no_return = {**_REQUEST, "return_documents": False}
+    with _build_client(monkeypatch, captured) as client:
+        resp = client.post("/rerank", json=request_no_return)
+    assert resp.status_code == 200
+    # Only the first 2 of the 3 documents in _REQUEST must reach the backend.
+    assert len(captured["json"]["documents"]) == 2
+    assert captured["json"]["documents"] == _REQUEST["documents"][:2]

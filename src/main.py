@@ -93,11 +93,12 @@ async def rerank_documents(
 ) -> RerankResponse:
     """Rerank documents by relevance to a query (Jina AI–compatible)."""
     settings = get_settings()
+    documents = request.documents[: settings.max_rerank_docs]
 
     payload: dict[str, Any] = {
         "model": settings.reranker_model,
         "query": request.query,
-        "documents": request.documents,
+        "documents": documents,
     }
     if request.top_n is not None:
         payload["top_n"] = request.top_n
@@ -141,7 +142,7 @@ async def rerank_documents(
             relevance_score=item.get("relevance_score", 0.0),
         )
         if request.return_documents:
-            rerank_result.document = {"text": request.documents[index]}
+            rerank_result.document = {"text": documents[index]}
         results.append(rerank_result)
 
     return RerankResponse(

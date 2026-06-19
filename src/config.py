@@ -31,6 +31,9 @@ class Settings(BaseSettings):
     # The model is fixed by configuration, not chosen by the caller, so a client
     # cannot route to an arbitrary backend model by changing the request body.
     reranker_model: str = "rerank-english-v3.0"
+    # Hard cap on the number of documents forwarded to the backend.
+    # LiteLLM enforces a limit of 1024; lower values reduce backend load.
+    max_rerank_docs: int = 1024
 
     # Uvicorn bind address used by `python main.py`.
     host: str = "0.0.0.0"
