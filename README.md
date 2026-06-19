@@ -2,7 +2,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-A lightweight REST API that exposes a **Jina AI–compatible `/rerank` endpoint** backed by a [LiteLLM](https://github.com/BerriAI/litellm) proxy. Drop it in front of any LiteLLM-supported reranker model and your existing Jina AI reranker clients work without modification.
+A lightweight REST API that exposes a **Jina AI–compatible `/rerank` endpoint** backed by any OpenAI-compatible reranker backend. Drop it in front of LiteLLM, vLLM, or any other OpenAI-API-compatible service and your existing Jina AI reranker clients work without modification.
 
 ---
 
@@ -13,9 +13,9 @@ RAG pipeline / LLM client
   │  POST /rerank  (Jina AI schema)
   ▼
 jina-reranker-api  (FastAPI)
-  │  token validation → LiteLLM request mapping
+  │  token validation → backend request mapping
   ▼
-LiteLLM proxy
+OpenAI-compatible backend  (LiteLLM, vLLM, …)
   │  routes to configured reranker model
   ▼
 jina-reranker-api
@@ -31,8 +31,8 @@ RAG pipeline  {model, object, usage, results[]}
 ```bash
 docker run -d \
   -p 8000:8000 \
-  -e LITELLM_BASE_URL=http://your-litellm:4000 \
-  -e LITELLM_API_KEY=your-key \
+  -e RERANKER_BASE_URL=http://your-backend:4000 \
+  -e RERANKER_API_KEY=your-key \
   -e RERANKER_MODEL=rerank-english-v3.0 \
   ghcr.io/fidonis/jina-reranker-api:latest
 ```
@@ -66,9 +66,9 @@ All settings are loaded from environment variables.
 
 | Variable | Default | Description |
 |---|---|---|
-| `LITELLM_BASE_URL` | `http://0.0.0.0:4000` | URL of the LiteLLM proxy |
-| `LITELLM_API_KEY` | — | API key for LiteLLM authentication |
-| `RERANKER_MODEL` | `rerank-english-v3.0` | Model identifier forwarded to LiteLLM |
+| `RERANKER_BASE_URL` | `http://0.0.0.0:4000` | Base URL of the OpenAI-compatible backend |
+| `RERANKER_API_KEY` | — | API key for the backend |
+| `RERANKER_MODEL` | `rerank-english-v3.0` | Model identifier forwarded to the backend |
 
 Copy `docker/.env.example` to `.env` and adjust the values before running.
 
@@ -87,7 +87,7 @@ uv run python main.py
 
 ## About Fidonis
 
-[Fidonis](https://fidonis.de) builds and operates the **papAIa** self-hosted AI stack and maintains open-source companion services for it. `jina-reranker-api` is one of those companion services — designed to integrate seamlessly with a LiteLLM deployment and work standalone as well.
+[Fidonis](https://fidonis.de) builds and operates the **papAIa** self-hosted AI stack and maintains open-source companion services for it. `jina-reranker-api` is one of those companion services — designed to sit in front of any OpenAI-compatible reranker backend and expose a Jina AI–compatible interface.
 
 ---
 

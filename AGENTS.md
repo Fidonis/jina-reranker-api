@@ -6,9 +6,9 @@ This document provides structural and architectural context for contributors and
 
 ## What this project does
 
-jina-reranker-api is a lightweight FastAPI service that exposes a **Jina AI–compatible `/rerank` endpoint** backed by a [LiteLLM](https://github.com/BerriAI/litellm) proxy. It allows any RAG pipeline or LLM orchestration tool that speaks the Jina AI reranker HTTP API to route reranking requests through LiteLLM, enabling model-agnostic cross-encoder reranking without client-side changes.
+jina-reranker-api is a lightweight FastAPI service that exposes a **Jina AI–compatible `/rerank` endpoint** backed by any OpenAI-compatible reranker backend (LiteLLM, vLLM, or similar). It allows any RAG pipeline or LLM orchestration tool that speaks the Jina AI reranker HTTP API to route reranking requests to any compatible backend, enabling model-agnostic cross-encoder reranking without client-side changes.
 
-Incoming `POST /rerank` requests are authenticated via a Bearer token, forwarded to the configured LiteLLM instance, and the response is mapped back to the Jina AI response schema (relevance scores, optional document return, usage stats).
+Incoming `POST /rerank` requests are authenticated via a Bearer token, forwarded to the configured OpenAI-compatible backend, and the response is mapped back to the Jina AI response schema (relevance scores, optional document return, usage stats).
 
 ---
 
@@ -40,13 +40,13 @@ HTTP client
   ▼
 FastAPI app  (src/main.py)
   │  validates Bearer token
-  │  maps Jina AI request schema → LiteLLM rerank request
+  │  maps Jina AI request schema → OpenAI-compatible rerank request
   ▼
-LiteLLM proxy  (LITELLM_BASE_URL)
+OpenAI-compatible backend  (RERANKER_BASE_URL)
   │  routes to the configured reranker model
   ▼
 FastAPI app
-  │  maps LiteLLM response → Jina AI response schema
+  │  maps backend response → Jina AI response schema
   ▼
 HTTP client  {model, object, usage, results[]}
 ```
@@ -84,7 +84,7 @@ Format: `<type>[(<scope>)][!]: <subject>`
 - `!` suffix marks a breaking change (triggers a major version bump)
 - CI enforces this format on every PR via `amannn/action-semantic-pull-request`
 
-Examples: `feat: add top-n parameter`, `fix(rerank): handle empty results from litellm`, `docs: document env vars`
+Examples: `feat: add top-n parameter`, `fix(rerank): handle empty results from backend`, `docs: document env vars`
 
 ### Merge strategy
 
@@ -119,13 +119,13 @@ All settings are loaded from environment variables. See `docker/.env.example` fo
 
 | Variable | Purpose |
 |---|---|
-| `LITELLM_BASE_URL` | Base URL of the LiteLLM proxy (default: `http://0.0.0.0:4000`) |
-| `LITELLM_API_KEY` | API key for authenticating with LiteLLM |
-| `RERANKER_MODEL` | Model identifier passed to LiteLLM (default: `rerank-english-v3.0`) |
+| `RERANKER_BASE_URL` | Base URL of the OpenAI-compatible backend (default: `http://0.0.0.0:4000`) |
+| `RERANKER_API_KEY` | API key for the backend |
+| `RERANKER_MODEL` | Model identifier forwarded to the backend (default: `rerank-english-v3.0`) |
 
 ---
 
 ## Security boundaries
 
-- **Never log** Bearer tokens or `LITELLM_API_KEY` values.
+- **Never log** Bearer tokens or `RERANKER_API_KEY` values.
 - **Copyleft dependencies are not accepted.** The CI license-check workflow rejects GPL, LGPL, AGPL, EUPL, and similar licences. See `CONTRIBUTING.md` for the full list.

@@ -28,8 +28,8 @@ is used nominatively (to describe the API specification this project
 implements) under the so-called nominative-fair-use principle. No endorsement
 by, or affiliation with, Jina AI GmbH is implied.
 
-This project also integrates with LiteLLM. Other third-party names that may
-appear in this project are the property of their respective owners.
+Other third-party names that may appear in this project are the property of
+their respective owners.
 
 ## Permitted uses
 
